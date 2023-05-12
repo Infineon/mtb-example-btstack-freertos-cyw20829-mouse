@@ -4,7 +4,7 @@ This reference solution demonstrates the implementation of the AIROC™ CYW20829
 
 [View this README on GitHub.](https://github.com/Infineon/mtb-example-btstack-freertos-cyw20829-mouse)
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiaGFyaWhhcmFuIiwiRG9jIHZlcnNpb24iOiIxLjAuMCIsIkRvYyBMYW5ndWFnZSI6IkVuZ2xpc2giLCJEb2MgRGl2aXNpb24iOiJNQ0QiLCJEb2MgQlUiOiJJQ1ciLCJEb2MgRmFtaWx5IjoiQlRBQkxFIn0=)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiMi4wLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
 
 ## Requirements
 
@@ -278,6 +278,7 @@ Document title: *CE236670* - AIROC&trade; CYW20829 HID mouse reference solution
  Version | Description of change
  ------- | ---------------------
  1.0.0   | Beta Release of mouse application. This version is not for production <br /> This version is not backward compatible with previous versions of ModusToolbox&trade; software
+ 2.0.0   | Added Support for CYW20829B0
 
 <br />
 

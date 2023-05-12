@@ -12,7 +12,7 @@
  * Related Document: See README.md
  *
  *******************************************************************************
- * Copyright 2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2022-2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -56,6 +56,8 @@
 #include "wiced_bt_gatt.h"
 #include "wiced_bt_ble.h"
 
+#include "cyhal_wdt.h"
+
 /*******************************************************************************
  *                                Macros
  *******************************************************************************/
@@ -87,6 +89,11 @@ static void app_bt_init(void);
 
 /* This function initializes GATT DB and registers callback for GATT events */
 static void app_bt_gatt_db_init(void);
+
+#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
+/* Function to initialize Watchdog */
+extern void app_init_wdt(void);
+#endif
 
 /*******************************************************************************
  *                          Function Definitions
@@ -126,7 +133,10 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
         case BTM_ENABLED_EVT:
             /* Perform application-specific initialization */
             app_bt_init();
-
+#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
+    /* Initialize WDT */
+    app_init_wdt();
+#endif
             /* Registering callback for system power management */
             create_cpu_sleep_cb();
             create_deep_sleep_cb();
@@ -380,6 +390,8 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
                     {
                         printf("Failed to stop Connection parameter update Timer\r\n");
                     }
+                    app_gap_peripheral_preferred_connection_parameters[0] = 0x06;
+                    app_gap_peripheral_preferred_connection_parameters[2] = 0x06;
                 }
                 else
                 {
@@ -394,6 +406,27 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
 
                 /* Update motion sensor data read interval */
                 app_motion_update_read_interval(p_event_data->ble_connection_param_update.conn_interval);
+            }
+            else
+            {
+                app_gap_peripheral_preferred_connection_parameters[0] = 0x0C;
+                app_gap_peripheral_preferred_connection_parameters[2] = 0x0C;
+
+                printf("Retrying Connection Param Update\r\n");
+                /* Check for connection parameter update retry count */
+                if (++conn_param_update_retry >= CONN_PARAM_UPDATE_RETRY_COUNT)
+                {
+                    /* Stop Connection parameter update timer */
+                    conn_param_update_retry = 0;
+                    conn_param_updated_flag = TRUE;
+
+                    if (pdFAIL == xTimerStop(conn_param_update_timer, TIMER_MAX_WAIT))
+                    {
+                        printf("Failed to stop Connection parameter update Timer\r\n");
+                    }
+                    app_gap_peripheral_preferred_connection_parameters[0] = 0x06;
+                    app_gap_peripheral_preferred_connection_parameters[2] = 0x06;
+                }
             }
 
             break;
