@@ -99,17 +99,17 @@
 /**
  * @brief Voltage in millivolts corresponding to 1%
  */
-#define BATT_LVL_1_MV                               ((uint16_t)(2100))
+#define BATT_LVL_1_MV                               ((uint16_t)(1050))
 
 /**
  * @brief Voltage in millivolts corresponding to 10%
  */
-#define BATT_LVL_10_MV                              ((uint16_t)(2300))
+#define BATT_LVL_10_MV                              ((uint16_t)(1150))
 
 /**
  * @brief Voltage in millivolts corresponding to 100%
  */
-#define BATT_LVL_100_MV                             ((uint16_t)(3000))
+#define BATT_LVL_100_MV                             ((uint16_t)(1500))
 
 /**
  * @brief Battery percentage to start indicating Low battery

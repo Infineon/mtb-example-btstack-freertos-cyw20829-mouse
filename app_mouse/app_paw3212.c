@@ -807,6 +807,9 @@ cy_rslt_t app_paw3212_mode_configure(void)
         uint8_t slp3_freq = 3; // 256ms(4 * 64ms)
         uint8_t slp3_etm = 0; // 20.48s
 
+#if CONFIG_PAW3212_ORIENTATION_0
+        mouse_option |= PAW3212_MOUSE_OPT_Y_INV;
+#endif
 #if CONFIG_PAW3212_ORIENTATION_90
         mouse_option |= PAW3212_MOUSE_OPT_XY_SWAP;
 #endif

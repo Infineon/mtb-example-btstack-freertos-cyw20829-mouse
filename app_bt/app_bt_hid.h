@@ -121,8 +121,6 @@ typedef enum
 extern TaskHandle_t ble_task_h;
 /* Queue for sending Mouse events and battery reports to Bluetooth LE Task */
 extern QueueHandle_t hid_rpt_q;
-/* Timer handle for triggering connection parameter update */
-extern TimerHandle_t conn_param_update_timer;
 /* Current Application state */
 extern app_ble_state_t current_app_state;
 

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration app="BACKEND" formatVersion="13" lastSavedWith="Configurator Backend" lastSavedWithVersion="3.0.0" toolsPackage="ModusToolbox 3.0.0" xmlns="http://cypress.com/xsd/cydesignfile_v4">
+<Configuration app="BACKEND" formatVersion="13" lastSavedWith="Configurator Backend" lastSavedWithVersion="3.10.0" toolsPackage="ModusToolbox 3.1.0" xmlns="http://cypress.com/xsd/cydesignfile_v4">
     <Devices>
         <Device mpn="CYW20829B0LKML">
             <BlockConfig>
@@ -8,7 +8,7 @@
                         <Param id="dcCfg" value="true"/>
                         <Param id="micCfg" value="false"/>
                         <Param id="pdmCfg" value="false"/>
-                        <Param id="dcIn" value="CY_ADCMIC_VDDIO"/>
+                        <Param id="dcIn" value="CY_ADCMIC_GPIO7"/>
                         <Param id="range" value="CY_ADCMIC_DC_RANGE_3_6V"/>
                         <Param id="period" value="10000"/>
                         <Param id="tmin" value="CY_ADCMIC_TIMER_COUNT_INPUT_CLK_SYS"/>
@@ -175,6 +175,20 @@
                 <Block location="ioss[0].port[3].pin[6]">
                     <Alias value="ENCODER_COM"/>
                 </Block>
+                <Block location="ioss[0].port[3].pin[7]">
+                    <Personality template="pin" version="3.0">
+                        <Param id="DriveModes" value="CY_GPIO_DM_ANALOG"/>
+                        <Param id="initialState" value="1"/>
+                        <Param id="nonSec" value="1"/>
+                        <Param id="vtrip" value="CY_GPIO_VTRIP_CMOS"/>
+                        <Param id="isrTrigger" value="CY_GPIO_INTR_DISABLE"/>
+                        <Param id="slewRate" value="CY_GPIO_SLEW_FAST"/>
+                        <Param id="driveStrength" value="CY_GPIO_DRIVE_1_2"/>
+                        <Param id="sioOutputBuffer" value="true"/>
+                        <Param id="pullUpRes" value="CY_GPIO_PULLUP_RES_DISABLE"/>
+                        <Param id="inFlash" value="true"/>
+                    </Personality>
+                </Block>
                 <Block location="ioss[0].port[4].pin[0]">
                     <Alias value="CYBSP_DEBUG_UART_CTS"/>
                 </Block>
@@ -316,6 +330,10 @@
                 </Block>
             </BlockConfig>
             <Netlist>
+                <Net>
+                    <Port name="adcmic[0].gpio_adc_in[7]"/>
+                    <Port name="ioss[0].port[3].pin[7].analog[0]"/>
+                </Net>
                 <Net>
                     <Port name="ioss[0].port[2].pin[0].digital_out[0]"/>
                     <Port name="smif[0].spihb_select0[0]"/>

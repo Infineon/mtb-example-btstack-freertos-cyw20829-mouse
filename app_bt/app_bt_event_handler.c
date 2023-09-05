@@ -75,11 +75,6 @@
 uint16_t app_bt_conn_id;
 
 static uint8_t reset_bond_data = 0;
-static uint16_t conn_interval = 0;
-static uint16_t conn_slave_latency = 0;
-static uint16_t conn_supervision_timeout = 0;
-
-extern TimerHandle_t conn_param_update_timer;
 extern uint8_t conn_param_update_retry;
 /*******************************************************************************
  *                           Function Prototypes
@@ -138,9 +133,7 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
     app_init_wdt();
 #endif
             /* Registering callback for system power management */
-            create_cpu_sleep_cb();
             create_deep_sleep_cb();
-            create_hibernate_cb();
 
             break;
 
@@ -341,12 +334,6 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
                 app_motion_restore_cpi_mode();
             }
 
-            /* Trigger Connection Param Update request from HID device after a delay */
-            if (pdFAIL == xTimerStart(conn_param_update_timer, TIMER_MAX_WAIT))
-            {
-                printf("Failed to start Connection parameter update Timer\r\n");
-            }
-
             break;
 
         case BTM_BLE_CONNECTION_PARAM_UPDATE:
@@ -359,75 +346,6 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
                    p_event_data->ble_connection_param_update.conn_interval,
                    p_event_data->ble_connection_param_update.conn_latency,
                    p_event_data->ble_connection_param_update.supervision_timeout);
-
-            if(p_event_data->ble_connection_param_update.status == CY_RSLT_SUCCESS)
-            {
-                conn_interval = p_event_data->ble_connection_param_update.conn_interval;
-                conn_slave_latency = p_event_data->ble_connection_param_update.conn_latency;
-                conn_supervision_timeout = p_event_data->ble_connection_param_update.supervision_timeout;
-
-                /* Check if connection parameters are within the required range */
-                if ((p_event_data->ble_connection_param_update.conn_interval < MIN_CI) ||
-                        (p_event_data->ble_connection_param_update.conn_interval > MAX_CI) ||
-                        (p_event_data->ble_connection_param_update.conn_latency == 0))
-                {
-                    /* Check for connection parameter update retry count */
-                    if ((++conn_param_update_retry <= CONN_PARAM_UPDATE_RETRY_COUNT) ||
-                            (p_event_data->ble_connection_param_update.conn_interval > MAX_CI_ACCEPT))
-                    {
-                        rslt = CY_RSLT_TYPE_ERROR;
-                    }
-                }
-
-                /* Connection Parameter Update request from HID device */
-                if (rslt == CY_RSLT_SUCCESS)
-                {
-                    /* Stop Connection parameter update timer */
-                    conn_param_update_retry = 0;
-                    conn_param_updated_flag = TRUE;
-
-                    if (pdFAIL == xTimerStop(conn_param_update_timer, TIMER_MAX_WAIT))
-                    {
-                        printf("Failed to stop Connection parameter update Timer\r\n");
-                    }
-                    app_gap_peripheral_preferred_connection_parameters[0] = 0x06;
-                    app_gap_peripheral_preferred_connection_parameters[2] = 0x06;
-                }
-                else
-                {
-                    /* Start Connection parameter update timer */
-                    conn_param_updated_flag = FALSE;
-
-                    if (pdFAIL == xTimerStart(conn_param_update_timer, TIMER_MAX_WAIT))
-                    {
-                        printf("Failed to start Connection parameter update Timer\r\n");
-                    }
-                }
-
-                /* Update motion sensor data read interval */
-                app_motion_update_read_interval(p_event_data->ble_connection_param_update.conn_interval);
-            }
-            else
-            {
-                app_gap_peripheral_preferred_connection_parameters[0] = 0x0C;
-                app_gap_peripheral_preferred_connection_parameters[2] = 0x0C;
-
-                printf("Retrying Connection Param Update\r\n");
-                /* Check for connection parameter update retry count */
-                if (++conn_param_update_retry >= CONN_PARAM_UPDATE_RETRY_COUNT)
-                {
-                    /* Stop Connection parameter update timer */
-                    conn_param_update_retry = 0;
-                    conn_param_updated_flag = TRUE;
-
-                    if (pdFAIL == xTimerStop(conn_param_update_timer, TIMER_MAX_WAIT))
-                    {
-                        printf("Failed to stop Connection parameter update Timer\r\n");
-                    }
-                    app_gap_peripheral_preferred_connection_parameters[0] = 0x06;
-                    app_gap_peripheral_preferred_connection_parameters[2] = 0x06;
-                }
-            }
 
             break;
 

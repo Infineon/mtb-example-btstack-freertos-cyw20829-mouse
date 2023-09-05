@@ -157,13 +157,6 @@ static void send_msg_to_hid_msg_q(mouse_rpt_t *mouse_rpt)
     if (pdPASS != xQueueSend(hid_rpt_q, &mouse_msg, TASK_MAX_WAIT))
     {
         printf("Failed to send msg to HID rpt Queue\r\n");
-
-        /* Start Connection parameter update timer */
-        conn_param_updated_flag = FALSE;
-        if (pdFAIL == xTimerStart(conn_param_update_timer, TIMER_MAX_WAIT))
-        {
-            printf("Failed to start Connection parameter update Timer\r\n");
-        }
     }
 
     /* clear mouse report data */
