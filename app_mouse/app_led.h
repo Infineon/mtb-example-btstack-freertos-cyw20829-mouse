@@ -61,9 +61,9 @@
 void app_status_led_init(void);
 void app_status_led_on(void);
 void app_status_led_off(void);
-void app_status_led_start_blinking(void);
-void app_status_led_stop_blinking(void);
 void app_led_update_blink_period(uint32_t time_period);
 void app_led_update_blink_count(uint16_t blink_count);
+void app_status_led_blinky_on();
+void app_status_led_blinky_off();
 
 #endif // __APP_LED_H_

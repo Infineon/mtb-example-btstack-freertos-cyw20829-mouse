@@ -58,6 +58,10 @@
 void app_button_init(void);
 void app_button_activity_handler(void);
 void app_button_disable(void);
+void app_button_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event);
+cy_rslt_t app_button_configure_pin(cyhal_gpio_t pin, cyhal_gpio_drive_mode_t drive_mode,
+                                      cyhal_gpio_event_t event, uint8_t intr_priority,
+                                      cyhal_gpio_callback_data_t* callback_data);
 
 #endif      /* __APP_BUTTON_H_ */
 

@@ -152,10 +152,12 @@ void app_bt_adv_state_handler(wiced_bt_ble_advert_mode_t current_adv_mode)
                         (app_bt_hid_get_device_state() == PAIRED_ADVERTISING_KNOWN_HOST))
                 {
                     app_bt_hid_update_device_state(PAIRED_IDLE);
+                    Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP_RAM);
                 }
                 else if (app_bt_hid_get_device_state() == UNPAIRED_ADVERTISING)
                 {
                     app_bt_hid_update_device_state(UNPAIRED_IDLE);
+                    Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP_RAM);
                 }
 
                 /* Enable deep_sleep for motion sensor to reduce power consumption in disconnected state */
@@ -166,9 +168,6 @@ void app_bt_adv_state_handler(wiced_bt_ble_advert_mode_t current_adv_mode)
             {
                 app_bt_hid_update_device_state(CONNECTED_NON_ADVERTISING);
             }
-
-            /* Stop LED blinking */
-            app_status_led_stop_blinking();
             break;
         case BTM_BLE_ADVERT_DIRECTED_HIGH:
         case BTM_BLE_ADVERT_DIRECTED_LOW:
@@ -177,8 +176,7 @@ void app_bt_adv_state_handler(wiced_bt_ble_advert_mode_t current_adv_mode)
         case BTM_BLE_ADVERT_NONCONN_HIGH:
         case BTM_BLE_ADVERT_NONCONN_LOW:
         case BTM_BLE_ADVERT_DISCOVERABLE_HIGH:
-            /* Start LED blinking for adv indication */
-            app_status_led_start_blinking();
+            Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);
             break;
         default:
             printf("ERROR: Unknown advertisement state\r\n");

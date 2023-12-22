@@ -75,6 +75,13 @@
 uint16_t app_bt_conn_id;
 
 static uint8_t reset_bond_data = 0;
+uint16_t conn_interval = 0;
+static uint16_t conn_slave_latency = 0;
+static uint16_t conn_supervision_timeout = 0;
+
+int temp_connection_flag =0;
+
+extern TimerHandle_t conn_param_update_timer;
 extern uint8_t conn_param_update_retry;
 /*******************************************************************************
  *                           Function Prototypes
@@ -84,11 +91,6 @@ static void app_bt_init(void);
 
 /* This function initializes GATT DB and registers callback for GATT events */
 static void app_bt_gatt_db_init(void);
-
-#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
-/* Function to initialize Watchdog */
-extern void app_init_wdt(void);
-#endif
 
 /*******************************************************************************
  *                          Function Definitions
@@ -128,12 +130,8 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
         case BTM_ENABLED_EVT:
             /* Perform application-specific initialization */
             app_bt_init();
-#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
-    /* Initialize WDT */
-    app_init_wdt();
-#endif
             /* Registering callback for system power management */
-            create_deep_sleep_cb();
+            app_create_deep_sleep_cb();
 
             break;
 
@@ -144,6 +142,20 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
                    app_bt_util_get_btm_advert_mode_name(*p_adv_mode));
 
             app_bt_adv_state_handler(*p_adv_mode);
+        if(p_event_data->ble_advert_state_changed == BTM_BLE_ADVERT_OFF )
+        {
+            // If the condition is true the advert is in off condition //
+            printf("Entered the non advert led section \n");
+            app_status_led_blinky_off();
+
+        }
+         else
+        {
+            // If the condition is false the advert is on on condition //
+            printf("entered the advert led section \n");
+            app_status_led_blinky_on();
+
+        }
             break;
 
         case BTM_SECURITY_REQUEST_EVT:
@@ -324,14 +336,15 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
 
                 /* Restore the CCCD stored earlier */
                 app_bt_bond_restore_cccd();
-                /* Enable all IN Report notifications. The HID Host will automatically
-                 * enable all CCCDs. On some cases, the HID device is done independently
-                 * for example chromecast. So Use it for debug purposes only.
-                 */
-                //          app_enable_all_cccds();
 
                 /* Restore CPI mode of the selected channel */
                 app_motion_restore_cpi_mode();
+            }
+
+            /* Trigger Connection Param Update request from HID device after a delay */
+            if (pdFAIL == xTimerStart(conn_param_update_timer, TIMER_MAX_WAIT))
+            {
+                printf("Failed to start Connection parameter update Timer\r\n");
             }
 
             break;
@@ -346,6 +359,32 @@ app_bt_event_management_callback(wiced_bt_management_evt_t event,
                    p_event_data->ble_connection_param_update.conn_interval,
                    p_event_data->ble_connection_param_update.conn_latency,
                    p_event_data->ble_connection_param_update.supervision_timeout);
+
+            if(p_event_data->ble_connection_param_update.status == CY_RSLT_SUCCESS)
+            {
+                conn_interval = p_event_data->ble_connection_param_update.conn_interval;
+                conn_slave_latency = p_event_data->ble_connection_param_update.conn_latency;
+                conn_supervision_timeout = p_event_data->ble_connection_param_update.supervision_timeout;
+
+                /* Check if connection parameters are within the required range */
+                if ((p_event_data->ble_connection_param_update.conn_interval < MIN_CI) ||
+                        (p_event_data->ble_connection_param_update.conn_interval > MAX_CI) ||
+                        (p_event_data->ble_connection_param_update.conn_latency == 0))
+                {
+                    temp_connection_flag = 1;
+                    xTaskNotify(mouse_task_h, MOUSE_CONEC_PARAM_UPDATE, eSetBits);
+                }
+                else
+                {
+                    temp_connection_flag = 0;
+                    xTaskNotify(mouse_task_h, MOUSE_CONEC_PARAM_UPDATE, eSetBits);
+                }
+            }
+            else
+            {
+                temp_connection_flag = 1;
+                xTaskNotify(mouse_task_h, MOUSE_CONEC_PARAM_UPDATE, eSetBits);
+            }
 
             break;
 

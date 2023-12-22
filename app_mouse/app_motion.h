@@ -100,5 +100,7 @@ void app_motion_activity_handler(void);
 cy_rslt_t app_motion_restore_cpi_mode(void);
 cy_rslt_t app_motion_read_cpi_mode_data(void);
 void app_motion_update_read_interval(uint16_t conn_interval);
+cy_rslt_t app_motion_pin_init(void);
+cy_rslt_t app_motion_spi_init(void);
 
 #endif /* __APP_MOTION_H_ */

@@ -52,7 +52,10 @@
 /*******************************************************************************
  *                              FUNCTION DECLARATIONS
  ******************************************************************************/
-void create_deep_sleep_cb(void);
+
+void app_create_deep_sleep_ram_uart_cb(void);
+void app_create_deep_sleep_ram__cb(void);
+void app_create_deep_sleep_cb(void);
 
 
 #endif // __APP_SLEEP_H_

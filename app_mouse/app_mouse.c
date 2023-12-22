@@ -44,6 +44,7 @@
 #include "app_handler.h"
 #include "app_bt_hid.h"
 #include "app_bt_gatt_handler.h"
+extern int temp_connection_flag;
 
 /*******************************************************************************
  *                              CONSTANTS
@@ -157,6 +158,13 @@ static void send_msg_to_hid_msg_q(mouse_rpt_t *mouse_rpt)
     if (pdPASS != xQueueSend(hid_rpt_q, &mouse_msg, TASK_MAX_WAIT))
     {
         printf("Failed to send msg to HID rpt Queue\r\n");
+
+        /* Start Connection parameter update timer */
+        conn_param_updated_flag = FALSE;
+        if (pdFAIL == xTimerStart(conn_param_update_timer, TIMER_MAX_WAIT))
+        {
+            printf("Failed to start Connection parameter update Timer\r\n");
+        }
     }
 
     /* clear mouse report data */
@@ -198,6 +206,25 @@ void app_mouse_task(void *args)
         if ((ulNotifiedValue & MOUSE_SCROLL) == MOUSE_SCROLL)
         {
 
+        }
+        if ((ulNotifiedValue & MOUSE_CONEC_PARAM_UPDATE) == MOUSE_CONEC_PARAM_UPDATE)
+        {
+            if(temp_connection_flag)
+            {
+                if (pdFAIL == xTimerStart(conn_param_update_timer, TIMER_MAX_WAIT))
+                   {
+                      printf("Failed to start Connection parameter update Timer\r\n");
+                   }
+
+            }
+
+            else
+            {
+                if (pdFAIL == xTimerStop(conn_param_update_timer, TIMER_MAX_WAIT))
+                    {
+                         printf("Failed to start Connection parameter update Timer\r\n");
+                    }
+            }
         }
 
         if (mouse_rpt_updated)

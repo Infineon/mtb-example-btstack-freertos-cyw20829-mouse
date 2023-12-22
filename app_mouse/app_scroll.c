@@ -47,8 +47,7 @@
  *                              CONSTANTS
  ******************************************************************************/
 
-void app_quaddec_za_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event);
-void app_quaddec_zb_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event);
+
 /*******************************************************************************
  *                              Global Variables
  ******************************************************************************/

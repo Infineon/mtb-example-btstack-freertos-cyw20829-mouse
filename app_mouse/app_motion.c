@@ -45,6 +45,7 @@
 #include "app_handler.h"
 #include "app_soft_spi.h"
 #include "app_paw3212.h"
+#include "app_bt_hid.h"
 
 /*******************************************************************************
  *                              CONSTANTS
@@ -335,10 +336,19 @@ cy_rslt_t app_motion_cpi_change(void)
     motion_data.cpi = app_motion_next_cpi();
     /* Update the CPI setting of the sensor */
     status = app_paw3212_update_config(PAW3212_CONFIG_CPI, app_paw3212_cpi_val(motion_data.cpi));
-    /* Update LED blink count depending on the CPI selected */
-    app_led_update_blink_count(motion_data.cpi);
     /* Save the CPI to flash */
     app_motion_save_cpi_mode(motion_data.cpi);
+
+    if(app_bt_hid_get_device_state() == CONNECTED_NON_ADVERTISING)
+    {
+        for(int no_blinks=0; no_blinks < motion_data.cpi; no_blinks++)
+        {
+            cyhal_gpio_write(STATUS_LED, CYBSP_LED_STATE_ON);
+            Cy_SysLib_Delay(500);
+            cyhal_gpio_write(STATUS_LED, CYBSP_LED_STATE_OFF);
+            Cy_SysLib_Delay(500);
+        }
+    }
 
     return status;
 }

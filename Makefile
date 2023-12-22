@@ -73,6 +73,7 @@ CONFIG=Custom
 # If set to "true" or "1", display full command-lines when building.
 VERBOSE=
 
+OTA_ENABLE = 0
 ################################################################################
 # Advanced Configuration
 ################################################################################
@@ -90,7 +91,9 @@ VERBOSE=
 # ... then code in directories named COMPONENT_foo and COMPONENT_bar will be
 # added to the build
 #
-
+OTA_APP_VERSION_MAJOR=1
+OTA_APP_VERSION_MINOR=0
+OTA_APP_VERSION_BUILD=0
 COMPONENTS=FREERTOS WICED_BLE
 
 # Like COMPONENTS, but disable optional code that was enabled by default.
@@ -109,16 +112,13 @@ SOURCES=
 # directories (without a leading -I).
 INCLUDES=./app_configs
 
-# To Power Off the Flash when not active.
-FLASH_POWER_DOWN_ENABLE = 1
-
 # Add additional defines to the build process (without a leading -D).
-DEFINES=CY_RETARGET_IO_CONVERT_LF_TO_CRLF CY_RTOS_AWARE STACK_INSIDE_FREE_RTOS
+DEFINES=CY_RETARGET_IO_CONVERT_LF_TO_CRLF CY_RTOS_AWARE STACK_INSIDE_FREE_RTOS CY_CFG_PWR_DEEPSLEEP_RAM_LATENCY=15
 
 DEFINES+= CYBT_PLATFORM_TRACE_ENABLE=0
 
-ifeq ($(FLASH_POWER_DOWN_ENABLE),1)
-DEFINES+=FLASH_POWER_DOWN
+ifeq ($(OTA_ENABLE),1)
+DEFINES+=ENABLE_OTA
 endif
 
 ##############################
@@ -130,13 +130,16 @@ VFP_SELECT=
 ##############################
 # Compiler and Linker Flags
 ##############################
-
+DEFINES+=\
+        APP_VERSION_MAJOR=$(OTA_APP_VERSION_MAJOR)\
+        APP_VERSION_MINOR=$(OTA_APP_VERSION_MINOR)\
+        APP_VERSION_BUILD=$(OTA_APP_VERSION_BUILD)
 # Additional / custom C compiler flags.
 #
 # NOTE: Includes and defines should use the INCLUDES and DEFINES variable
 # above.
 CFLAGS+=-O2
-
+CY_BUILD_LOCATION:=./build
 # Additional / custom C++ compiler flags.
 #
 # NOTE: Includes and defines should use the INCLUDES and DEFINES variable
@@ -168,15 +171,56 @@ endif # GCC_ARM
 # Additional / custom libraries to link in to the application.
 LDLIBS=
 
-# Path to the linker script to use (if empty, use the default linker script).
-LINKER_SCRIPT=./templates/TARGET_CYW920829-MOUSE/COMPONENT_CM33/TOOLCHAIN_GCC_ARM/linker.ld
-
 # Custom pre-build commands to run.
 PREBUILD=
 
 # Custom post-build commands to run.
 POSTBUILD=
 
+
+ifeq ($(OTA_ENABLE),1)
+OTA_PLATFORM = CYW20829
+OTA_SUPPORT = 1
+OTA_BT_ONLY = 1
+OTA_BT_SUPPORT = 1
+OTA_BT_SECURE = 0
+FLASH_BASE_ADDRESS = 0x60000000
+CY_IGNORE+= $(SEARCH_mcuboot)
+OTA_FLASH_MAP?=$(RELATIVE_FILE1_FILE2)/../configs/flashmap/cyw20829_xip_swap_single.json
+DEFINES+=ENABLE_OTA_LOGS ENABLE_OTA
+OTA_LINKER_FILE = ./linker/cyw20829_ns_flash_cbus_ota_xip.ld
+ifneq ($(MAKECMDGOALS),getlibs)
+ifneq ($(MAKECMDGOALS),get_app_info)
+ifneq ($(MAKECMDGOALS),printlibs)
+    include ../mtb_shared/ota-update/release-v*/makefiles/target_ota.mk
+    include ../mtb_shared/ota-update/release-v*/makefiles/mcuboot_flashmap.mk
+endif
+endif
+endif
+include ./local.mk
+else
+CY_IGNORE+=./app_bt_ota
+CY_IGNORE+=./local.mk
+CY_IGNORE+= $(SEARCH_aws-iot-device-sdk-embedded-C)
+CY_IGNORE+= $(SEARCH_ota-update)
+CY_IGNORE+= $(SEARCH_aws-iot-device-sdk-port)
+CY_IGNORE+= $(SEARCH_connectivity-utilities)
+CY_IGNORE+= $(SEARCH_cy-mbedtls-acceleration)
+CY_IGNORE+= $(SEARCH_http-client)
+CY_IGNORE+= $(SEARCH_lwip-freertos-integration)
+CY_IGNORE+= $(SEARCH_lwip-network-interface-integration)
+CY_IGNORE+= $(SEARCH_lwip)
+CY_IGNORE+= $(SEARCH_mbedtls)
+CY_IGNORE+= $(SEARCH_mqtt)
+CY_IGNORE+= $(SEARCH_secure-sockets)
+CY_IGNORE+= $(SEARCH_whd-bsp-integration)
+CY_IGNORE+= $(SEARCH_wifi-connection-manager)
+CY_IGNORE+= $(SEARCH_wifi-core-freertos-lwip-mbedtls)
+CY_IGNORE+= $(SEARCH_wifi-host-driver)
+CY_IGNORE+= $(SEARCH_wpa3-external-supplicant)
+# Path to the linker script to use (if empty, use the default linker script).
+LINKER_SCRIPT=./linker/linker.ld
+endif
 ################################################################################
 # Paths
 ################################################################################

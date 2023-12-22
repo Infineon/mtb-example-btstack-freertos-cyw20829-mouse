@@ -192,19 +192,6 @@
 #define PAIRING_MODE_SWITCH_DELAY_MS                ((uint32_t)(3000))
 /*******************************************************************************/
 
-/************************** WATCHDOG CONFIGURATIONS ****************************/
-/**
- * @brief To enable the Watchdog timer
- * Enabled by default , set this to false to disable Watchdog
- */
-#define ENABLE_WDT                                  (true)
-
-/**
- * @brief Configure the watchdog timeout in milliseconds if enabled
- * Max limit is given by CYHAL_WDT_MAX_TIMEOUT_MS
- */
-#define WDT_TIME_OUT_MS                             (1000u)
-/*******************************************************************************/
 
 /************************** UART LOG CONFIGURATIONS ****************************/
 /**

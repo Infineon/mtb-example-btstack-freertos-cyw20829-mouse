@@ -76,6 +76,15 @@
 
 #include "cy_retarget_io.h"
 
+/* OTA header files */
+#ifdef ENABLE_OTA
+#include "app_ota_serial_flash.h"
+#include "cy_log.h"
+#include "cy_ota_api.h"
+#include "app_ota_context.h"
+#include "cy_ota_platform.h"
+#endif
+
 /*******************************************************************************
  *                               Macro Definitions
  *******************************************************************************/
@@ -102,50 +111,19 @@
 /*******************************************************************************
  *                           Global Variables
  *******************************************************************************/
-#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
-/* WDT object */
-cyhal_wdt_t wdt_obj;
+#ifdef ENABLE_OTA
+extern cy_ota_agent_mem_interface_t storage_interfaces;
 #endif
 
 /*******************************************************************************
  *                           Function Prototypes
  *******************************************************************************/
-#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
-/* Function to initialize Watchdog */
-void app_init_wdt(void);
-#endif
 /* Function to initialize the various tasks for the Bluetooth LE application */
 static void app_tasks_init(void);
 
 /******************************************************************************
  *                          Function Definitions
  ******************************************************************************/
-#if (ENABLE_WDT == true) && (ENABLE_LOGGING == false)
-/**
- *  Function name:
- *  app_init_wdt
- *
- *  Function Description:
- *  @brief    This function initializes the WDT block
- *
- *  @param    void
- *
- *  @return    void
- */
-void app_init_wdt(void)
-{
-    cy_rslt_t result = CY_RSLT_SUCCESS;
-
-    /* Initialize the WDT */
-    result = cyhal_wdt_init(&wdt_obj, WDT_TIME_OUT_MS);
-
-    /* WDT initialization failed. Stop program execution */
-    if (result != CY_RSLT_SUCCESS)
-    {
-        CY_ASSERT(0);
-    }
-}
-#endif
 /**
  *  Function name:
  *  app_tasks_init
@@ -174,6 +152,18 @@ static void app_tasks_init(void)
     /* Initializing the HCI UART for Host control */
     cybt_platform_config_init(&app_bt_platform_cfg_settings);
 
+
+#ifdef ENABLE_OTA
+#if (ENABLE_LOGGING == true)
+    cy_log_init(CY_LOG_WARNING, NULL, NULL);
+    cy_ota_set_log_level(CY_LOG_NOTICE);
+#else
+    cy_log_init(CY_LOG_OFF, NULL, NULL);
+#endif
+#endif
+
+
+
     /* Debug logs on UART port */
     printf("\r\n****** Bluetooth LE HID Mouse Application******\r\n ");
     printf("\r\nThis application implements HoGP and sends HID reports on Mouse events over BLE \r\n");
@@ -184,6 +174,27 @@ static void app_tasks_init(void)
     {
         printf("ERROR returned from cybsp_smif_init()!!!\r\n");
     }
+
+#ifdef ENABLE_OTA
+
+    ota_initialize_default_values();
+    cy_ota_storage_validated(&storage_interfaces);
+#endif
+
+#ifdef ENABLE_OTA
+#ifdef COMPONENT_OTA_BLUETOOTH
+    /* Verify that the Non-Secure / Secure build choice matches the Bluetooth? Configurator output */
+    if (cy_ota_ble_check_build_vs_configurator() != CY_RSLT_SUCCESS)
+    {
+        printf("Failed configurator check \r \n");
+        while(true)
+        {
+            cy_rtos_delay_milliseconds(1000);
+        }
+
+    }
+#endif
+#endif
 
     /* Initialize kv_store library */
     app_flash_kv_store_init();
@@ -287,13 +298,20 @@ int main(void)
 {
     cy_rslt_t result = CY_RSLT_SUCCESS;
 
+#ifdef ENABLE_OTA
+       cyhal_wdt_t  wdt_obj;
+#endif
 
     /* Initialize the device and board peripherals */
-    result = cybsp_init();
-    if (result != CY_RSLT_SUCCESS)
+    if(result != cybsp_init())
     {
         CY_ASSERT(0);
     }
+
+#ifdef ENABLE_OTA
+    cyhal_wdt_init(&wdt_obj, cyhal_wdt_get_max_timeout_ms());
+    cyhal_wdt_free(&wdt_obj);
+#endif
 
     /* Enable global interrupts */
     __enable_irq();
@@ -301,6 +319,10 @@ int main(void)
     /* Initialize the tasks */
     app_tasks_init();
     printf("Application tasks initialized\r\n");
+
+#ifdef ENABLE_OTA
+    printf("OTA Version %d %d %d \r\n",APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_BUILD);
+#endif
 
     /* Start the FreeRTOS scheduler */
     vTaskStartScheduler();

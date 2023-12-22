@@ -58,5 +58,7 @@
 void app_quaddec_init(void);
 void app_scroll_enable(void);
 void app_scroll_disable(void);
+void app_quaddec_za_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event);
+void app_quaddec_zb_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event);
 
 #endif // __APP_SCROLL_H_

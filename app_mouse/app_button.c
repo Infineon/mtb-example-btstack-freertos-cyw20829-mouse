@@ -77,7 +77,7 @@ TimerHandle_t device_switch_timer;
  *                              FUNCTION DECLARATIONS
  ******************************************************************************/
 void app_button_event_enable(void);
-void app_button_interrupt_handler(void *handler_arg, cyhal_gpio_event_t event);
+
 
 /* Structure for GPIO interrupt */
 cyhal_gpio_callback_data_t app_left_button_isr_data =
@@ -154,10 +154,6 @@ void app_button_activity_handler(void)
         /* Change the cpi in order 1026(Default)->1634->836->1026(Default)->... */
 
         app_motion_cpi_change();
-
-        /* Start LED blink to indicate the DPI change */
-        app_led_update_blink_period(LED_BLINK_RATE_MS);
-        app_status_led_start_blinking();
     }
     else
     {
@@ -359,7 +355,7 @@ void app_button_pair_mode_switch_timer_cb(TimerHandle_t cb_params)
  *
  *  @return   cy_rslt_t: CY_RSLT_SUCCESS if success, else an error code
  */
-static cy_rslt_t app_button_configure_pin(cyhal_gpio_t pin, cyhal_gpio_drive_mode_t drive_mode,
+cy_rslt_t app_button_configure_pin(cyhal_gpio_t pin, cyhal_gpio_drive_mode_t drive_mode,
                                       cyhal_gpio_event_t event, uint8_t intr_priority,
                                       cyhal_gpio_callback_data_t* callback_data)
 {

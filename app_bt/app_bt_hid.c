@@ -66,6 +66,8 @@ struct hid_rpt_msg rpt_msg;
 
 /* Timer handle for triggering disconnection when idle for sometime */
 TimerHandle_t ble_disconnection_timer;
+/* Timer handle for triggering connection parameter update */
+TimerHandle_t conn_param_update_timer;
 /* Timer handle for stopping advertisement */
 TimerHandle_t adv_stop_timer;
 
@@ -73,12 +75,14 @@ uint8_t app_hid_mouse_report[MOUSE_REPORT_BUFF_SIZE][MOUSE_REPORT_SIZE];
 
 extern wiced_bt_device_address_t peer_bd_addr;
 extern TimerHandle_t motion_data_read_timer;
+extern uint16_t conn_interval;
 /* Current Application state */
 app_ble_state_t current_app_state = UNPAIRED_ON;
 /*******************************************************************************
  *                              FUNCTION DECLARATIONS
  ******************************************************************************/
 void app_bt_hid_idle_disconnection_timer_cb(TimerHandle_t cb_params);
+void app_bt_hid_conn_param_update_timer_cb(TimerHandle_t cb_params);
 void app_bt_hid_send_batt_report(uint8_t battery_percentage);
 
 /*******************************************************************************
@@ -166,6 +170,12 @@ void app_bt_hid_handle_low_battery(void)
  */
 void app_bt_hid_pairing_mode_switch(void)
 {
+    /* Stop Connection parameter update timer */
+    if (pdFAIL == xTimerStop(conn_param_update_timer, TIMER_MIN_WAIT))
+    {
+        printf("Failed to stop Connection param update Timer\r\n");
+    }
+
     /* If in connected state, disconnect from current host */
     if (app_bt_conn_id != 0)
     {
@@ -258,6 +268,46 @@ void app_bt_hid_idle_disconnection_timer_cb(TimerHandle_t cb_params)
     }
 }
 
+/**
+ *  Function name:
+ *  app_bt_hid_conn_param_update_timer_cb
+ *
+ *  Function Description:
+ *  @brief Timer cb to trigger BLE connection parameter update
+ *
+ *  @param    cb_param: Argument to cb
+ *
+ *  @return   void
+ */
+void app_bt_hid_conn_param_update_timer_cb(TimerHandle_t cb_params)
+{
+    if((app_bt_conn_id !=0) &&
+            (conn_param_updated_flag == FALSE))
+    {
+        wiced_bool_t conn_update_status = 0;
+
+        printf("sending conn param request\r\n");
+        conn_update_status = wiced_bt_l2cap_update_ble_conn_params(
+                        peer_bd_addr,
+                        MIN_CI,
+                        MAX_CI,
+                        SLAVE_LATENCY,
+                        SUPERVISION_TO);
+
+        if (0 != conn_update_status)
+        {
+            printf("Connection parameter update successful\r\n");
+        }
+
+
+        if(conn_interval > 0)
+        {
+            app_motion_update_read_interval(conn_interval);
+        }
+
+
+    }
+}
 
 /**
  *  Function name:
@@ -516,6 +566,20 @@ void app_bt_hid_task(void *pvParameters)
     if (NULL == ble_disconnection_timer)
     {
         printf("BLE Disconnection Timer Initialization has failed! \r\n");
+        CY_ASSERT(0);
+    }
+
+    /* Create timer to trigger connection parameter update */
+    conn_param_update_timer = xTimerCreate("Conn Param Update Timer",
+                                           pdMS_TO_TICKS(CONN_PARAM_UPDATE_TIMER_DELAY),
+                                           pdTRUE,
+                                           NULL,
+                                           app_bt_hid_conn_param_update_timer_cb);
+
+    /* Timer init failed. Stop program execution */
+    if (NULL == conn_param_update_timer)
+    {
+        printf("Connection parameter update Timer Initialization has failed! \r\n");
         CY_ASSERT(0);
     }
 

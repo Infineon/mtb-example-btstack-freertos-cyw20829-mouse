@@ -107,9 +107,6 @@ const char* app_bt_util_get_btm_event_name(wiced_bt_management_evt_t event)
         CASE_RETURN_STR(BTM_SCO_CONNECTION_CHANGE_EVT)
         CASE_RETURN_STR(BTM_BLE_CONNECTION_PARAM_UPDATE)
         CASE_RETURN_STR(BTM_BLE_DATA_LENGTH_UPDATE_EVENT)
-#ifdef CYW20819A1
-    CASE_RETURN_STR(BTM_BLE_PHY_UPDATE_EVT)
-#endif
     }
 
     return "UNKNOWN_EVENT";

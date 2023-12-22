@@ -88,7 +88,8 @@ typedef enum
 {
     MOUSE_BUTTON = 1,
     MOUSE_MOTION = 2,
-    MOUSE_SCROLL = 4
+    MOUSE_SCROLL = 4,
+    MOUSE_CONEC_PARAM_UPDATE=5
 } mouse_event_e;
 
 typedef enum

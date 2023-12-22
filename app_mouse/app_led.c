@@ -60,7 +60,7 @@ static TimerHandle_t power_on_led_ind_timer;
 static bool led_blinking = false;
 static bool led_state = false;
 static bool power_on_led_ind = true;
-static uint16_t led_blink_count = 0;
+
 /*******************************************************************************
  *                              FUNCTION DEFINITIONS
  ******************************************************************************/
@@ -115,143 +115,36 @@ void app_status_led_off(void)
  */
 static void app_led_blink_timer_cb(TimerHandle_t cb_params)
 {
-    if (led_blinking)
-    {
-        /* Check to halt LED blinking till power ON Indication is done */
-        if (!power_on_led_ind)
-        {
-            led_state = !led_state;
-            cyhal_gpio_toggle(STATUS_LED);
-        }
-
-        /* Low battery LED Indication */
-        if (low_battery == true)
-        {
-            if (led_state == true)
-            {
-                app_led_update_blink_period(LOW_BATT_LED_BLINK_ON_TIME_MS);
-            }
-            else
-            {
-                app_led_update_blink_period(LOW_BATT_LED_BLINK_OFF_TIME_MS);
-            }
-        }
-
-        /* If LED blink count is set, Stop after the required blinks */
-        if ((led_blink_count) && (led_state == false))
-        {
-            led_blink_count--;
-
-            if (!led_blink_count)
-            {
-                /* Return without starting the LED blink timer again */
-                led_blinking = false;
-                return;
-            }
-        }
-
-        if (pdFAIL == xTimerStart(led_blink_timer, TIMER_MIN_WAIT))
-        {
-            printf("Failed to start LED blink Timer\r\n");
-        }
-    }
+    cyhal_gpio_toggle(STATUS_LED);
 }
 
-/**
- *  Function name:
- *  app_status_led_start_blinking
- *
- *  Function Description:
- *  @brief    Function to start LED blinking
- *
- *  @param    TimerHandle_t
- *
- *  @return   void
- */
-void app_status_led_start_blinking(void)
+
+void app_status_led_blinky_on()
 {
-    if (!led_blinking)
-    {
-        led_blinking = true;
-
-        /* Check to halt LED blinking till power ON Indication is done */
-        if (!power_on_led_ind)
+         if(xTimerIsTimerActive(led_blink_timer))
+         {
+             if(pdPASS != xTimerStop(led_blink_timer , 10u))
+             {
+                printf("Led timer failed to stop \r\n");
+             }
+         }
+        if (pdPASS != xTimerStart(led_blink_timer, 10u))
         {
-            led_state = !led_state;
-            cyhal_gpio_toggle(STATUS_LED);
+            printf("LED timer failed to start  \r\n");
         }
-
-        /* Low battery LED Indication */
-        if (low_battery == true)
-        {
-            if (led_state == true)
-            {
-                app_led_update_blink_period(LOW_BATT_LED_BLINK_ON_TIME_MS);
-            }
-            else
-            {
-                app_led_update_blink_period(LOW_BATT_LED_BLINK_OFF_TIME_MS);
-            }
-        }
-
-        /* If LED blink count is set, Stop after the required blinks */
-        if ((led_blink_count) && (led_state == false))
-        {
-            led_blink_count--;
-
-            if (!led_blink_count)
-            {
-                /* Return without starting the LED blink timer again */
-                led_blinking = false;
-                return;
-            }
-        }
-
-        if (pdFAIL == xTimerStart(led_blink_timer, TIMER_MAX_WAIT))
-        {
-            printf("Failed to start LED blink Timer\r\n");
-        }
-    }
 }
 
-/**
- *  Function name:
- *  app_status_led_stop_blinking
- *
- *  Function Description:
- *  @brief    Function to stop LED blinking
- *
- *  @param    TimerHandle_t
- *
- *  @return   void
- */
-void app_status_led_stop_blinking(void)
+void app_status_led_blinky_off()
 {
-    if ((led_blinking) && (low_battery == false))
     {
-        led_blinking = false;
-
-        if (!power_on_led_ind)
+        if (pdPASS != xTimerStop(led_blink_timer, 10u))
         {
-            app_status_led_off();
+            printf("Failed to stop LED timer!\r\n");
         }
-    }
-}
 
-/**
- *  Function name:
- *  app_led_update_blink_count
- *
- *  Function Description:
- *  @brief    Function to update LED blink count
- *
- *  @param    uint16_t
- *
- *  @return   void
- */
-void app_led_update_blink_count(uint16_t blink_count)
-{
-    led_blink_count = blink_count;
+        cyhal_gpio_write(STATUS_LED, CYBSP_LED_STATE_OFF);
+
+    }
 }
 
 /**
@@ -315,7 +208,7 @@ void app_status_led_init(void)
      /* Initialize timer for blinking */
      led_blink_timer = xTimerCreate("LED Blink Timer",
                                 pdMS_TO_TICKS(LED_BLINK_RATE_MS),
-                                pdFALSE,
+                                pdTRUE,
                                 NULL ,
                                 app_led_blink_timer_cb);
 

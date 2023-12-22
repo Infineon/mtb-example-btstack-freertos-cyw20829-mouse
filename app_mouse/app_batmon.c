@@ -54,6 +54,9 @@
 #include "app_bt_hid.h"
 #include "app_batmon.h"
 #include "app_handler.h"
+#include "app_button.h"
+#include "app_paw3212.h"
+#include "cy_retarget_io.h"
 
 /*******************************************************************************
  *                               Macro Definitions
@@ -77,14 +80,36 @@ TimerHandle_t batmon_timer;
 /* Battery monitoring task handle */
 TaskHandle_t batmon_task_h;
 
+extern cyhal_spi_t mSPI;
+
 /* ADCMIC interrupt configuration parameters */
 const cy_stc_sysint_t ADCMIC_IRQ_cfg = { .intrSrc = (IRQn_Type)adcmic_0_IRQ,
                                          .intrPriority = 7 };
+
+/* WDT object */
+extern cyhal_wdt_t wdt_obj;
+extern cy_stc_syspm_warmboot_entrypoint_t syspmBspDeepSleepEntryPoint;
+
+extern cyhal_gpio_callback_data_t app_left_button_isr_data ;
+
+extern cyhal_gpio_callback_data_t app_right_button_isr_data ;
+extern cyhal_gpio_callback_data_t app_middle_button_isr_data ;
+
+extern cyhal_gpio_callback_data_t app_dpi_button_isr_data ;
+/* Structure for ZA GPIO interrupt */
+extern cyhal_gpio_callback_data_t app_quaddec_za_isr_data ;
+/* Structure for ZB GPIO interrupt */
+extern cyhal_gpio_callback_data_t app_quaddec_zb_isr_data;
 
 /*******************************************************************************
  *                              FUNCTION DECLARATIONS
  ******************************************************************************/
 void app_batmon_timer_cb(TimerHandle_t cb_params);
+void app_quaddec_pin_deint();
+void app_spi_deint();
+void app_motion_sensor_btn_dint();
+void app_btn_pin_dinit();
+void app_led_pin_deint();
 
 /******************************************************************************
  *                          Function Definitions
@@ -104,6 +129,11 @@ static void app_batmon_adc_dc_cap_start(void)
 {
     if (adc_drv_state == ADC_IDLE)
     {
+        /* Initialize the ADCMic for for DC monitoring */
+        if (CY_ADCMIC_SUCCESS != Cy_ADCMic_Init(adcmic_0_HW, &adcmic_0_config, CY_ADCMIC_DC))
+        {
+            CY_ASSERT(0);
+        }
         Cy_ADCMic_SetInterruptMask(adcmic_0_HW, CY_ADCMIC_INTR_DC);
         Cy_ADCMic_ClearInterrupt(adcmic_0_HW, CY_ADCMIC_INTR);
         Cy_ADCMic_Enable(adcmic_0_HW);
@@ -210,16 +240,13 @@ void app_batmon_timer_cb(TimerHandle_t cb_params)
  */
 static void app_batmon_init(void)
 {
+    app_create_deep_sleep_ram_uart_cb();
+    app_create_deep_sleep_ram__cb();
+
     /* Register the interrupt handler of ADCMIC Irq */
     Cy_SysInt_Init(&ADCMIC_IRQ_cfg, app_batmon_adcmic_dc_intr_handler);
     NVIC_ClearPendingIRQ(ADCMIC_IRQ_cfg.intrSrc);
     NVIC_EnableIRQ(ADCMIC_IRQ_cfg.intrSrc);
-
-    /* Initialize the ADCMic for for DC monitoring */
-    if (CY_ADCMIC_SUCCESS != Cy_ADCMic_Init(adcmic_0_HW, &adcmic_0_config, CY_ADCMIC_DC))
-    {
-        CY_ASSERT(0);
-    }
 
     /* Create a Periodic timer for Battery Monitoring */
     batmon_timer = xTimerCreate("Battery Monitoring Timer",
@@ -339,7 +366,6 @@ void app_batmon_task(void *arg)
         if (batt_cap <= LOW_BATT_VOLTAGE_PERCENT)
         {
             low_battery = true;
-            app_status_led_start_blinking();
         }
 
         /* Allow the device to go to DS */

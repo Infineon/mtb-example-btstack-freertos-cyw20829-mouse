@@ -4,7 +4,7 @@ This reference solution demonstrates the implementation of the AIROC™ CYW20829
 
 [View this README on GitHub.](https://github.com/Infineon/mtb-example-btstack-freertos-cyw20829-mouse)
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiMi4xLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiMy4wLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
 
 ## Requirements
 
@@ -180,6 +180,7 @@ The mouse will come out of this deepsleep state on any motion or button press ev
 
 6. When the battery capacity reaches 1 percent, the mouse goes to hibernate mode. To come out of this hibernate state, remove the batteries and insert new batteries to power cycle the mouse.
 
+**Note**: Power cycle the device after programming in order to enter the DS-RAM power mode.
 ## Test procedure
 
 ### Testing on Windows 10
@@ -247,6 +248,9 @@ The mouse provides an option to change the DPI mode of the motion sensor to cont
 
 4. Configure the DPI mode for each device channel separately.
 
+### Steps to enable OTA 
+Refer [OTA_README](./app_bt_ota/OTA_README.md)
+
 ## Resources and settings
 
 This section explains the ModusToolbox&trade; software resources and their configuration as used in this code example. Note that all the configuration explained in this section has already been done in the code example. ModusToolbox&trade; software stores the configuration settings of the application in the *design.modus* file. This file is used by the graphical configurators, which generate the configuration firmware. This firmware is stored in the application’s *GeneratedSource* folder.
@@ -280,6 +284,7 @@ Document title: *CE236670* - AIROC&trade; CYW20829 HID mouse reference solution
  1.0.0   | Beta Release of mouse application. This version is not for production <br /> This version is not backward compatible with previous versions of ModusToolbox&trade; software
  2.0.0   | Added Support for CYW20829B0
  2.1.0   | Code changes for new schematics
+ 3.0.0   | Added DSRAM functionlaity
 
 <br />
 

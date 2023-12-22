@@ -235,7 +235,7 @@
                         <Param id="isrDataOverflow" value="false"/>
                         <Param id="rxTriggerLevel" value="0"/>
                         <Param id="txTriggerLevel" value="0"/>
-                        <Param id="inFlash" value="true"/>
+                        <Param id="inFlash" value="false"/>
                     </Personality>
                 </Block>
                 <Block location="srss[0].clock[0]">
@@ -318,7 +318,7 @@
                         <Param id="enableLowPowerProfileMode" value="false"/>
                         <Param id="minCurrRegulator" value="CY_SYSPM_LDO_MODE_NORMAL"/>
                         <Param id="backupSrc" value="VDDD"/>
-                        <Param id="idlePwrMode" value="CY_CFG_PWR_MODE_DEEPSLEEP"/>
+                        <Param id="idlePwrMode" value="CY_CFG_PWR_MODE_DEEPSLEEP_RAM"/>
                         <Param id="deepsleepLatency" value="0"/>
                         <Param id="sdr0BypassModeMacro" value="true"/>
                         <Param id="vddaMv" value="3300"/>

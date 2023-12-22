@@ -1,5 +1,5 @@
 /***************************************************************************//**
-* \file cyw20829_ns_flash_cbus.ld
+* \file cyw20829_ns_flash_cbus_ota_ext.ld
 * \version 1.0.0
 *
 * Linker file for the GNU C compiler.
@@ -48,13 +48,15 @@ BOOTSTRAP_SIZE = DEFINED(APP_BOOTSTRAP_SIZE) ? APP_BOOTSTRAP_SIZE : 0x00002400 ;
 /* The size of the stack section at the end of CM4 SRAM */
 STACK_SIZE = 0x1000;
 
-FLASH_START_ADDR_SAHB       = 0x60000000;
-FLASH_START_ADDR_CBUS       = 0x08000000;
+USER_APP_START_OFFSET       = MCUBOOT_HEADER_SIZE + FLASH_AREA_IMG_1_PRIMARY_START;
+
+FLASH_START_ADDR_SAHB       = 0x60000000 + USER_APP_START_OFFSET;
+FLASH_START_ADDR_CBUS       = 0x08000000 + USER_APP_START_OFFSET;
 RAM_START_ADDR_SAHB         = 0x20000000;
 RAM_END_ADDR_SAHB           = 0x20040000; /* 256K */
 
-RAM_START_ADDR_CBUS         = 0x20000000;
-RAM_END_ADDR_CBUS           = 0x20040000; /* 256K */
+RAM_START_ADDR_CBUS         = 0x04000000;
+RAM_END_ADDR_CBUS           = 0x04040000; /* 256 */
 
 FLASH_END_ADDR_SAHB         = 0x60080000; /* 512K */
 
@@ -394,10 +396,11 @@ SECTIONS
         *cy_mpc.o(.text*)
         *cy_pd_ppu.o(.text*)
         *cy_syspm_ppu.o(.text*)
-        *libg_nano.a:libc_a-memcpy-stub.o (.text*)   /* add memcpy from the NewLib library here*/
-        *libg_nano.a:libc_a-memset.o (.text*)   /* add memcpy from the NewLib library here*/
-        *libg_nano.a:libc_a-memmove.o (.text*)   /* add memcpy from the NewLib library here*/
-        *libm.a:libc_a-s_fabs.o (.text*)
+
+        *memcpy*.o (.text*)   /* add memcpy from the NewLib library here*/
+        *memset*.o (.text*)        /* add memcpy from the NewLib library here*/
+        *memmove*.o (.text*)       /* add memcpy from the NewLib library here*/
+        *s_fabs.o (.text*)
 
         KEEP(*(.cy_l1func*))
 
@@ -428,6 +431,7 @@ SECTIONS
         /* startup code */
         *startup_cat1b_cm33.o(.data* .rodata .rodata.* .constdata .constdata.* .conststring .conststring.*)
         *system_cyw20829.o(.data* .rodata .rodata.* .constdata .constdata.* .conststring .conststring.*)
+
         /* drivers */
         *cy_device.o(.data* .rodata .rodata.* .constdata .constdata.* .conststring .conststring.*)
         *cy_btss.o(.data* .rodata .rodata.* .constdata .constdata.* .conststring .conststring.*)
