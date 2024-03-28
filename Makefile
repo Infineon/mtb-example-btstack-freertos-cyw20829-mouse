@@ -130,6 +130,10 @@ VFP_SELECT=
 ##############################
 # Compiler and Linker Flags
 ##############################
+# Supported Compilers
+CY_TOOLCHAIN_ARM_NOT_SUPPORTED = true
+CY_TOOLCHAIN_IAR_NOT_SUPPORTED = true
+
 DEFINES+=\
         APP_VERSION_MAJOR=$(OTA_APP_VERSION_MAJOR)\
         APP_VERSION_MINOR=$(OTA_APP_VERSION_MINOR)\
