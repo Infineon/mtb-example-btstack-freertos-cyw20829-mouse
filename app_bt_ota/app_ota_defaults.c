@@ -46,12 +46,9 @@
 #include "GeneratedSource/cycfg_gatt_db.h"
 #include "GeneratedSource/cycfg_bt_settings.h"
 #include "stdio.h"
-#include "app_ota_serial_flash.h"
 #include "cyabs_rtos.h"
+#include "cy_ota_storage_api.h"
 
-ota_app_context_t ota_app;
-
-/* OTA variables */
 #ifndef  COMPONENT_OTA_BLUETOOTH_SECURE
 /* UUID for non-secure Bluetooth */
 const uint8_t NON_SECURE_UUID_SERVICE_OTA_FW_UPGRADE_SERVICE[] = { 0x1F, 0x38, 0xA1, 0x38, 0xAD, 0x82, 0x35, 0x86, 0xA0, 0x43, 0x13, 0x5C, 0x47, 0x1E, 0x5D, 0xAE };
@@ -60,36 +57,43 @@ const uint8_t NON_SECURE_UUID_SERVICE_OTA_FW_UPGRADE_SERVICE[] = { 0x1F, 0x38, 0
 /* UUID created by Bluetooth� Configurator, supplied in "GeneratedSource/cycfg_gatt_db.h" */
 const uint8_t BLE_CONFIG_UUID_SERVICE_OTA_FW_UPGRADE_SERVICE[] = {__UUID_SERVICE_OTA_FW_UPGRADE_SERVICE };
 
-cy_ota_agent_mem_interface_t storage_interfaces =
+/* OTA variables */
+ota_app_context_t ota_app;
+
+
+/* OTA storage interface callbacks */
+cy_ota_storage_interface_t storage_interfaces =
 {
-        .read = ota_mem_read,
-        .write = ota_mem_write,
-        .erase = ota_mem_erase,
-        .get_erase_size = ota_mem_get_erase_size,
-        .get_prog_size = ota_mem_get_prog_size
+           .ota_file_open            = cy_ota_storage_open,
+           .ota_file_read            = cy_ota_storage_read,
+           .ota_file_write           = cy_ota_storage_write,
+           .ota_file_close           = cy_ota_storage_close,
+           .ota_file_verify          = cy_ota_storage_verify,
+           .ota_file_validate        = cy_ota_storage_image_validate,
+           .ota_file_get_app_info    = cy_ota_storage_get_app_info
+
 };
 
-cy_ota_network_params_t     ota_test_network_params = { CY_OTA_CONNECTION_UNKNOWN };
+cy_ota_network_params_t      ota_test_network_params = { CY_OTA_CONNECTION_UNKNOWN };
 cy_ota_agent_params_t     ota_test_agent_params = { 0 };
 
 /******************************************************
  *               Function Definitions
  ******************************************************/
 
-void ota_initialize_default_values(void)
+void app_ota_initialize_default_values(void)
 {
     ota_app.tag               = OTA_APP_TAG_VALID;
     ota_app.connection_type   = CY_OTA_CONNECTION_BLE;
     ota_app.update_flow       = CY_OTA_JOB_FLOW;
-    ota_app.reboot_at_end     = 1;
+    ota_app.reboot_at_end     = TRUE;
 
 };
 
-cy_rslt_t cy_ota_ble_check_build_vs_configurator( void )
+cy_rslt_t app_ota_verify_ota_uuid( void )
 {
-    /* verify "make built" with proper Bluetooth� SECURE setting, compare to output on what Bluetooth� Configurator output for us */
-#ifndef  COMPONENT_OTA_BLUETOOTH_SECURE
-    /* Check UUID for non-secure Bluetooth� upgrade service */
+
+    /* Check UUID for non-secure Bluetooth upgrade service */
     if (0 != memcmp(NON_SECURE_UUID_SERVICE_OTA_FW_UPGRADE_SERVICE, BLE_CONFIG_UUID_SERVICE_OTA_FW_UPGRADE_SERVICE, sizeof(NON_SECURE_UUID_SERVICE_OTA_FW_UPGRADE_SERVICE)))
     {
         printf("    SECURE <appname>.cybt File does not match NON-SECURE APP build!\n");
@@ -97,11 +101,10 @@ cy_rslt_t cy_ota_ble_check_build_vs_configurator( void )
         printf("        (Set 'GATT->Server->OTA FW UPGRADE SERVICE' to 'ae5d1e47-5c13-43a0-8635-82ad38a1381f')\n");
         return CY_RSLT_OTA_ERROR_GENERAL;
     }
-#endif
 
     return CY_RSLT_SUCCESS;
 }
- cy_rslt_t init_ota(ota_app_context_t *ota)
+ cy_rslt_t app_ota_init(ota_app_context_t *ota)
 {
     cy_rslt_t               result;
 
@@ -118,7 +121,10 @@ cy_rslt_t cy_ota_ble_check_build_vs_configurator( void )
                                                                 cy_ota_validated() on reboot */
 #endif
 
-    result = cy_ota_agent_start(&ota_test_network_params, &ota_test_agent_params,&storage_interfaces, &ota_app.ota_context);
+    result = cy_ota_agent_start(&ota_test_network_params,
+                                &ota_test_agent_params,
+                                &storage_interfaces,
+                                &ota_app.ota_context);
     if (result != CY_RSLT_SUCCESS)
     {
         while (true)

@@ -47,21 +47,20 @@
 #include "cy_ota_api.h"
 #include "app_bt_bonding.h"
 #include "GeneratedSource/cycfg_gap.h"
-
-
-#ifdef COMPONENT_OTA_BLUETOOTH
 #include "wiced_bt_types.h"
 #include "wiced_bt_dev.h"
 #include "wiced_bt_gatt.h"
 #include "wiced_bt_ble.h"
-#endif
+
 
 /******************************************************
  *                     Macros
  ******************************************************/
 #define OTA_APP_TAG_VALID               (0x51EDBA15)
 #define OTA_APP_TAG_INVALID             (0xDEADBEEF)
-
+/******************************************************
+ *                     Strut
+ ******************************************************/
 
 typedef struct
 {
@@ -69,14 +68,10 @@ typedef struct
 
     cy_ota_context_ptr      ota_context;
     cy_ota_connection_t     connection_type;
-
-#ifdef COMPONENT_OTA_BLUETOOTH
-
     uint16_t                    bt_conn_id;                 /* Host Bluetooth® Connection ID */
     uint8_t                     bt_peer_addr[BD_ADDR_LEN];  /* Host Bluetooth® address */
     wiced_bt_ble_conn_params_t  bt_conn_params;             /* Bluetooth® connection parameters */
     uint16_t                    bt_config_descriptor;       /* Bluetooth® configuration to determine if Device sends Notification/Indication */
-#endif
     uint8_t                 connected;
     cy_ota_update_flow_t    update_flow;
     uint8_t                 do_not_send_result;
@@ -98,12 +93,12 @@ extern ota_app_context_t ota_app;
  *               Function Declarations
  ******************************************************/
 
-void ota_initialize_default_values(void);
+void app_ota_initialize_default_values(void);
 
 /* Functions in ota_test_console.c used by main.c */
 int ota_test_command_console_init(void);
 
-cy_rslt_t cy_ota_ble_check_build_vs_configurator( void );
-cy_rslt_t init_ota(ota_app_context_t *ota);
+cy_rslt_t app_ota_verify_ota_uuid( void );
+cy_rslt_t app_ota_init(ota_app_context_t *ota);
 
 #endif /* #define OTA_CONTEXT_H_ */

@@ -78,11 +78,12 @@
 
 /* OTA header files */
 #ifdef ENABLE_OTA
-#include "app_ota_serial_flash.h"
 #include "cy_log.h"
 #include "cy_ota_api.h"
 #include "app_ota_context.h"
-#include "cy_ota_platform.h"
+#include "cy_ota_storage_api.h"
+#include "cybsp_bt_config.h"
+#include "cy_ota_api.h"
 #endif
 
 /*******************************************************************************
@@ -111,9 +112,6 @@
 /*******************************************************************************
  *                           Global Variables
  *******************************************************************************/
-#ifdef ENABLE_OTA
-extern cy_ota_agent_mem_interface_t storage_interfaces;
-#endif
 
 /*******************************************************************************
  *                           Function Prototypes
@@ -141,7 +139,8 @@ static void app_tasks_init(void)
 
 #if ENABLE_LOGGING
     /* Initialize retarget-io to use the debug UART port */
-    cy_rslt_t status = cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX,
+    cy_rslt_t status = cy_retarget_io_init(CYBSP_DEBUG_UART_TX,
+                                           CYBSP_DEBUG_UART_RX,
                                            CY_RETARGET_IO_BAUDRATE);
     if(CY_RSLT_SUCCESS != status)
     {
@@ -154,9 +153,10 @@ static void app_tasks_init(void)
 
 
 #ifdef ENABLE_OTA
+    cy_rslt_t cy_result;
 #if (ENABLE_LOGGING == true)
-    cy_log_init(CY_LOG_WARNING, NULL, NULL);
-    cy_ota_set_log_level(CY_LOG_NOTICE);
+    cy_log_init(CY_LOG_INFO, NULL, NULL);
+    cy_ota_set_log_level(CY_LOG_INFO);;
 #else
     cy_log_init(CY_LOG_OFF, NULL, NULL);
 #endif
@@ -177,14 +177,31 @@ static void app_tasks_init(void)
 
 #ifdef ENABLE_OTA
 
-    ota_initialize_default_values();
-    cy_ota_storage_validated(&storage_interfaces);
+    app_ota_initialize_default_values();
+
+    /* Need to init from every ext flash write
+     * See serial_flash.h in app for more details.
+     */
+    printf("call cy_ota_storage_init()\n");
+    if (cy_ota_storage_init() != CY_RSLT_SUCCESS)
+    {
+        printf("ERROR returned from cy_ota_storage_init()!!!!!\n");
+    }
+    /* Validate the update so we do not revert on reboot */
+    cy_result =cy_ota_storage_image_validate(0);
+    if (cy_result != CY_RSLT_SUCCESS)
+     {
+         printf("cy_ota_storage_image_validate() Failed\n");
+     }
+     else
+     {
+         printf("cy_ota_storage_image_validate() Successful\n");
+     }
 #endif
 
 #ifdef ENABLE_OTA
-#ifdef COMPONENT_OTA_BLUETOOTH
     /* Verify that the Non-Secure / Secure build choice matches the Bluetooth? Configurator output */
-    if (cy_ota_ble_check_build_vs_configurator() != CY_RSLT_SUCCESS)
+    if (app_ota_verify_ota_uuid() != CY_RSLT_SUCCESS)
     {
         printf("Failed configurator check \r \n");
         while(true)
@@ -193,7 +210,6 @@ static void app_tasks_init(void)
         }
 
     }
-#endif
 #endif
 
     /* Initialize kv_store library */

@@ -4,7 +4,7 @@ This reference solution demonstrates the implementation of the AIROC™ CYW20829
 
 [View this README on GitHub.](https://github.com/Infineon/mtb-example-btstack-freertos-cyw20829-mouse)
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiNC4wLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiNC4xLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
 
 ## Requirements
 
@@ -169,7 +169,7 @@ You can debug the example to step through the code. In the IDE, use the **\<Appl
 
 1. Use MTB or via command line to build and program your application.
 
-2. The HID mouse starts advertising as "IFX BLE Mouse" at high duty for 60 seconds followed by low duty for 30 seconds, and then the advertisements are turned OFF.
+2. The HID mouse starts advertising as "IFX BLE Mouse" at high duty followed by low duty, and then the advertisements are turned OFF (ref swift pairing section for more details on advertisements).
 
 3. When the advertisements are OFF, press any button or move the mouse to start advertisements and get them discovered by peer devices.
 
@@ -181,6 +181,25 @@ The mouse will come out of this deepsleep state on any motion or button press ev
 6. When the battery capacity reaches 1 percent, the mouse goes to hibernate mode. To come out of this hibernate state, remove the batteries and insert new batteries to power cycle the mouse.
 
 **Note**: Power cycle the device after programming in order to enter the DS-RAM power mode.
+
+### Swift pairing Enabled
+
+[Microsoft Swift pair](https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/bluetooth-swift-pair)
+
+1. Please make sure the laptop is Windows 10, version 1803 or above , Switch on the bluetooth.
+
+2. Go to Settings –> Bluetooth –> devices –> device settings –> “Show notifications to connect using Swift Pair” should be ON.
+
+3. When the mouse application is advertising, Windows will show a notification(Pop-up window) to the user.
+   Please ref to the GIF in the above link demonstrating the pop-up.
+
+4. This sample app does high duty advertisement for 60 seconds, then switchs to low duty cycle for 60 seconds and then switches to
+   cool down phase for 60 sec where the adv doesn't have the swift pair PDU so in this phase no pop-up will be seen.
+
+3. Selecting "Connect" from the pop-up notification starts pairing the peripheral.
+
+4. Once the pairing and connection is complete, notification pops-up saying the mouse is setup, then mouse can be used.
+
 ## Test procedure
 
 ### Testing on Windows 10
@@ -251,6 +270,13 @@ The mouse provides an option to change the DPI mode of the motion sensor to cont
 ### Steps to enable OTA 
 Refer [OTA_README](./app_bt_ota/OTA_README.md)
 
+## Steps to enable the BTSPY on the CYW20829-MOUSE
+1. Add airoc-hci-transport from library manager before enabling spy traces, check airoc-hci-transport [README.md](https://github.com/Infineon/airoc-hci-transport/blob/master/README.md) for more details. If airoc-hci-transport library is included in the application, it is recommended to initialize it (Call cybt_debug_uart_init()). If airoc-hci-transport library is present in the application, but you want to use retarget-io library to get application traces in Teraterm/putty, you need to set the ENABLE_AIROC_HCI_TRANSPORT_PRINTF MACRO value to 0 in the application. Otherwise printf messages of the application will not be visible.
+
+      #define ENABLE_AIROC_HCI_TRANSPORT_PRINTF 1
+
+2. The UART peripheral needs to be deinitialize  and reinitialize since we are using the DS-RAM idle power mode, Follow the instruction at section 3.3.2 in the following document [AN238282](https://www.infineon.com/dgdl/Infineon-AN238282_-_AIROC_CYW20829_MCU_low-power_modes_and_power_reduction_techniques-ApplicationNotes-v02_00-EN.pdf?fileId=8ac78c8c8d2fe47b018e36a5d3077271).
+
 ## Resources and settings
 
 This section explains the ModusToolbox&trade; software resources and their configuration as used in this code example. Note that all the configuration explained in this section has already been done in the code example. ModusToolbox&trade; software stores the configuration settings of the application in the *design.modus* file. This file is used by the graphical configurators, which generate the configuration firmware. This firmware is stored in the application’s *GeneratedSource* folder.
@@ -287,6 +313,7 @@ Document title: *CE236670* - AIROC&trade; CYW20829 HID mouse reference solution
  3.0.0   | Added DSRAM functionlaity
  3.1.0   | Update list of supported compilers.
  4.0.0   | BSP and BTStack-integration major update for BT Firmware as a separate asset
+ 4.1.0   | EFI, Swift Pairing and OTA support upgrade
 
 <br />
 

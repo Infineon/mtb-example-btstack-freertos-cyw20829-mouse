@@ -17,7 +17,7 @@ The MCUBOOT application must built and programmed separately.
    ```
 3. Change the branch to get the appropriate version:
    ```
-   git checkout v1.8.4-cypress
+   git checkout v1.9.3-cypress
    ```
 4. Pull in sub-modules to build mcuboot:
    ```
@@ -90,11 +90,11 @@ The app also supports OTA updates over Bluetooth® LE. A peer app is used to pus
 
 2. Build the app, but DO NOT PROGRAM. This version of the app will be used to push to the device via the peer Windows app (WsOtaUpgrade.exe).
 
-3. In the project directory, navigate to build/<TARGET>/Config and locate the .bin file. Copy this file to the same directory as the peer app (WsOtaUpgrade.exe). It is located at btsdk-peer-apps-ota/tree/master/Windows/WsOtaUpgrade/Release/<System Type>.
+3. In the project directory, navigate to build/<TARGET>/Config and locate the signed.bin file. Copy this file to the same directory as the peer app (WsOtaUpgrade.exe). It is located at btsdk-peer-apps-ota/tree/master/Windows/WsOtaUpgrade/Release/<System Type>.
 
 4. Open the terminal and navigate to WsOtaUpgrade.exe. Initiate the update process by issuing the following command:
    ```
-   ./WsOtaUpgrade.exe <App_name>.bin
+   ./WsOtaUpgrade.exe <App_name>signed.bin
    ```
 5. In the dialog box that appears, select your device and click OK (IFX MOUSE in this case). In the next window, select Start to begin pushing the OTA update image to the device.
 

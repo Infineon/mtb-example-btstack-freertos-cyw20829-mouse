@@ -47,6 +47,7 @@
 #include "wiced_bt_ble.h"
 
 #include "app_bt_gatt_handler.h"
+#include "app_bt_event_handler.h"
 #include "app_bt_utils.h"
 #include "app_bt_advert.h"
 #include "app_bt_hid.h"
@@ -57,11 +58,7 @@
 #ifdef ENABLE_OTA
 #include "app_ota_context.h"
 #include "app_serial_flash.h"
-#include "cy_ota_platform.h"
 #include "cy_ota_api.h"
-
-extern ota_app_context_t ota_app;
-gatt_write_req_buf_t write_buff;
 #endif
 
 /*******************************************************************************
@@ -87,6 +84,11 @@ extern TimerHandle_t conn_param_update_timer;
 extern TimerHandle_t motion_data_read_timer;
 extern TimerHandle_t adv_stop_timer;
 
+#ifdef ENABLE_OTA
+extern ota_app_context_t ota_app;
+gatt_write_req_buf_t write_buff;
+#endif
+
 /*******************************************************************************
  *                              FUNCTION DECLARATIONS
  ******************************************************************************/
@@ -100,18 +102,27 @@ static wiced_bt_gatt_status_t app_bt_gatt_req_read_multi_handler(uint16_t conn_i
                                                                  wiced_bt_gatt_read_multiple_req_t *p_read_req,
                                                                  uint16_t len_requested,
                                                                  uint16_t *p_error_handle);
+
 static gatt_db_lookup_table_t *app_bt_gatt_find_by_handle(uint16_t handle);
 
-extern wiced_result_t BTM_SetDataChannelPDULength(wiced_bt_device_address_t bd_addr, uint16_t tx_pdu_length);
+extern wiced_result_t BTM_SetDataChannelPDULength(wiced_bt_device_address_t bd_addr, 
+                                                  uint16_t tx_pdu_length);
 
 
 #ifdef ENABLE_OTA
-static wiced_bt_gatt_status_t app_bt_prepare_write_handler(uint16_t conn_id,
+static wiced_bt_gatt_status_t 
+app_bt_prepare_write_handler(uint16_t conn_id,
                                                            wiced_bt_gatt_opcode_t opcode,
                                                            wiced_bt_gatt_write_req_t *p_req,
                                                            uint16_t *p_error_handle);
 
-static wiced_bt_gatt_status_t app_bt_execute_write_handler(wiced_bt_gatt_event_data_t *p_req, uint16_t *p_error_handle);
+static wiced_bt_gatt_status_t 
+app_bt_execute_write_handler(wiced_bt_gatt_event_data_t *p_req, 
+                                                           uint16_t *p_error_handle);
+
+wiced_bt_gatt_status_t
+app_bt_gatt_attr_write_handler(wiced_bt_gatt_event_data_t *p_req, 
+                               uint16_t *p_error_handle);
 #endif
 /*******************************************************************************
  *                              FUNCTION DEFINITIONS
@@ -276,6 +287,7 @@ app_bt_gatt_connection_status_change_cb(wiced_bt_gatt_connection_status_t *p_con
 
     if ((p_conn_status->connected) && (0 == app_bt_conn_id))
     {
+        app_bt_hid_update_device_state(CONNECTED_NON_ADVERTISING);
         BTM_SetDataChannelPDULength(p_conn_status->bd_addr, CY_BT_RX_PDU_SIZE);
 
         /* Device has connected */
@@ -315,7 +327,7 @@ app_bt_gatt_connection_status_change_cb(wiced_bt_gatt_connection_status_t *p_con
                                               MAX_CI,
                                               SLAVE_LATENCY,
                                               SUPERVISION_TO);
-                Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);
+        Cy_SysPm_SetDeepSleepMode(CY_SYSPM_MODE_DEEPSLEEP);
     }
     else
     {
@@ -368,7 +380,7 @@ app_bt_gatt_connection_status_change_cb(wiced_bt_gatt_connection_status_t *p_con
         }
         else if (app_bt_hid_get_device_state() == PAIRED_ADVERTISING_KNOWN_HOST)
         {
-            app_bt_adv_start_known_host();
+            app_bt_adv_start_known_host_dir_adv();
         }
         else if (0 != app_bt_bond_get_info_count())
         {
@@ -564,9 +576,11 @@ app_bt_gatt_attr_write_handler(wiced_bt_gatt_event_data_t *p_req, uint16_t *p_er
 {
 #ifdef ENABLE_OTA
     cy_rslt_t   result;
+    uint32_t final_crc32 = 0;
+    bool crc_or_sig_verify = true;
 #endif
     wiced_bt_gatt_status_t gatt_status = WICED_BT_GATT_SUCCESS;
-    wiced_bt_gatt_write_req_t *p_write_req;
+    wiced_bt_gatt_write_req_t *p_write_req = &p_req->attribute_request.data.write_req;
     uint8_t index = 0;
 
     CY_ASSERT(p_req != NULL);
@@ -596,72 +610,148 @@ app_bt_gatt_attr_write_handler(wiced_bt_gatt_event_data_t *p_req, uint16_t *p_er
            case HDLC_OTA_FW_UPGRADE_SERVICE_OTA_UPGRADE_CONTROL_POINT_VALUE:
                switch(p_write_req->p_val[0])
                {
-               case CY_OTA_UPGRADE_COMMAND_PREPARE_DOWNLOAD:
+                case CY_OTA_UPGRADE_COMMAND_PREPARE_DOWNLOAD:
                    ota_app.connection_type = CY_OTA_CONNECTION_BLE;
-//                   ota_started = 1;
-//                   xTimerStop(conn_param_update_timer, TIMER_MAX_WAIT);
-                   result = init_ota(&ota_app);
+                   result = app_ota_init(&ota_app);
                    if (result != CY_RSLT_SUCCESS)
                    {
+                       printf("app_ota_init() Failed - result: 0x%lx \r\n",result);
                        gatt_status= WICED_BT_GATT_ERROR;
                        break;
                    }
                    printf("Preparing to download the image \r\n");
-                   result = cy_ota_ble_download_prepare(ota_app.ota_context, ota_app.bt_conn_id, ota_app.bt_config_descriptor);
-                   if (result != CY_RSLT_SUCCESS)
-                   {
-                       gatt_status= WICED_BT_GATT_ERROR;
-                       break;
-                   }
+                   cy_ota_ble_download_prepare(ota_app.ota_context);
+                   if (result == CY_RSLT_SUCCESS)
+                    {
+                          printf("\ncy_ota_ble_download_prepare completed, Sending notification\r\n");
+                          uint8_t bt_notify_buff = CY_OTA_UPGRADE_STATUS_OK;
+                          gatt_status = app_bt_ble_send_notification(app_bt_conn_id,
+                                                                     HDLC_OTA_FW_UPGRADE_SERVICE_OTA_UPGRADE_CONTROL_POINT_VALUE,
+                                                                     1,
+                                                                     &bt_notify_buff);
+                            if (gatt_status != WICED_BT_GATT_SUCCESS)
+                            {
+                                printf("\nApplication BT Send notification callback failed: 0x%lx \r\n", result);
+                            }
+                    }
+                    else
+                    {
+
+                        printf("cy_ota_ble_prepare_download() Failed - result: 0x%lx\n", result);
+                    }
                    gatt_status = WICED_BT_GATT_SUCCESS;
-                   break;
+                break;
 
                case CY_OTA_UPGRADE_COMMAND_DOWNLOAD:
-                   result = cy_ota_ble_download(ota_app.ota_context, p_req, ota_app.bt_conn_id, ota_app.bt_config_descriptor);
-                   if (result != CY_RSLT_SUCCESS)
+                   uint32_t total_size = 0;
+                   if (p_write_req->val_len < 4)
                    {
-                       gatt_status = WICED_BT_GATT_ERROR;
-                       break;
+                        printf("CY_OTA_UPGRADE_COMMAND_DOWNLOAD len < 4\n");
+                        gatt_status = WICED_BT_GATT_ERROR;
+                        break;
                    }
-                   gatt_status = WICED_BT_GATT_SUCCESS;
-                   break;
+
+                   total_size = (((uint32_t)p_write_req->p_val[4]) << 24) +
+                                (((uint32_t)p_write_req->p_val[3]) << 16) +
+                                (((uint32_t)p_write_req->p_val[2]) << 8) +
+                                (((uint32_t)p_write_req->p_val[1]) << 0);
+
+
+                   result = cy_ota_ble_download(ota_app.ota_context, total_size);
+
+                   if (result == CY_RSLT_SUCCESS)
+                   {
+                        printf("\ncy_ota_ble_download completed, Sending notification");
+                        uint8_t bt_notify_buff = CY_OTA_UPGRADE_STATUS_OK;
+                        gatt_status = app_bt_ble_send_notification(app_bt_conn_id,
+                                                                   HDLC_OTA_FW_UPGRADE_SERVICE_OTA_UPGRADE_CONTROL_POINT_VALUE,
+                                                                   1, 
+                                                                   &bt_notify_buff);
+                       if (gatt_status != WICED_BT_GATT_SUCCESS)
+                       {
+                            printf("\nApplication BT Send notification callback failed: 0x%lx\n", result);
+                            break;
+                       }
+                   }
+                   else
+                   {
+                        printf("cy_ota_ble_download() Failed - result: 0x%lx \r\n", result);
+                        gatt_status = WICED_BT_GATT_ERROR;
+                   }
+                break;
 
                case CY_OTA_UPGRADE_COMMAND_VERIFY:
-                   result = cy_ota_ble_download_verify(ota_app.ota_context, p_req, ota_app.bt_conn_id);
-                   if (result != CY_RSLT_SUCCESS)
+                   if (p_write_req->val_len != 5)
                    {
-                       gatt_status = WICED_BT_GATT_ERROR;
-                       break;
+                        printf("CY_OTA_UPGRADE_COMMAND_VERIFY len != 5\n");
+                        gatt_status = WICED_BT_GATT_ERROR;
+                        break;
                    }
-                   gatt_status = WICED_BT_GATT_SUCCESS;
+
+                   final_crc32 = (((uint32_t)p_write_req->p_val[1]) << 0) +
+                                 (((uint32_t)p_write_req->p_val[2]) << 8) +
+                                 (((uint32_t)p_write_req->p_val[3]) << 16) +
+                                 (((uint32_t)p_write_req->p_val[4]) << 24);
+
+                   printf("\nFinal CRC from Host : 0x%lx\n", final_crc32);
+
+                   result = cy_ota_ble_download_verify(ota_app.ota_context, final_crc32, crc_or_sig_verify);
+                   if (result == CY_RSLT_SUCCESS)
+                   {
+                        printf("\ncy_ota_ble_download_verify completed, Sending notification");
+                        uint8_t bt_notify_buff = CY_OTA_UPGRADE_STATUS_OK;
+                        gatt_status = app_bt_ble_send_indication(app_bt_conn_id, HDLC_OTA_FW_UPGRADE_SERVICE_OTA_UPGRADE_CONTROL_POINT_VALUE, 1, &bt_notify_buff);
+                        if (gatt_status != WICED_BT_GATT_SUCCESS)
+                        {
+                            printf("\nApplication BT Send Indication callback failed: 0x%lx\n", result);
+                        }
+                   }
+                   else
+                   {
+                       printf("cy_ota_ble_download_verify() Failed - result: 0x%lx\n", result);
+                       uint8_t bt_notify_buff = CY_OTA_UPGRADE_STATUS_BAD;
+                       gatt_status = app_bt_ble_send_indication(app_bt_conn_id,
+                                                                HDLC_OTA_FW_UPGRADE_SERVICE_OTA_UPGRADE_CONTROL_POINT_VALUE,
+                                                                1, 
+                                                                &bt_notify_buff);
+
+                       if (gatt_status != WICED_BT_GATT_SUCCESS)
+                       {
+                           printf("\nApplication BT Send Indication callback failed: 0x%lx\n", result);
+                       }
+
+                       gatt_status = WICED_BT_GATT_ERROR;
+                   }
                    break;
 
                case CY_OTA_UPGRADE_COMMAND_ABORT:
-//                   ota_started = 0;
-                   result = cy_ota_ble_download_abort(&ota_app.ota_context);
-                   gatt_status = WICED_BT_GATT_SUCCESS;
-                   break;
+                    result = cy_ota_ble_download_abort(&ota_app.ota_context);
+                    gatt_status = WICED_BT_GATT_SUCCESS;
+                 break;
                }
                break;
 
            case HDLC_OTA_FW_UPGRADE_SERVICE_OTA_UPGRADE_DATA_VALUE:
-               printf("application downloading... \r\n");
-               result = cy_ota_ble_download_write(ota_app.ota_context, p_req);
+               printf("Application downloading in progress... \r\n");
+               result = cy_ota_ble_download_write(ota_app.ota_context,
+                                                  p_write_req->p_val,
+                                                  p_write_req->val_len,
+                                                  p_write_req->offset);
                if (result != CY_RSLT_SUCCESS)
                {
-                   gatt_status = WICED_BT_GATT_ERROR;
-                   break;
+                    gatt_status = WICED_BT_GATT_ERROR;
+                    break;
                }
                gatt_status = WICED_BT_GATT_SUCCESS;
-               break;
+            break;
 
            default:
                       /* Handle normal (non-OTA) indication confirmation requests here */
                       /* Attempt to perform the Write Request */
                       return app_bt_gatt_set_attr_value(index,
-                                                   p_write_req->p_val,
-                                                    p_write_req->val_len,
-                                                    p_attr_req->opcode);
+                                                        p_write_req->p_val,
+                                                        p_write_req->val_len,
+                                                        p_attr_req->opcode);
                  }
 
 #else
@@ -705,10 +795,10 @@ app_bt_gatt_attr_write_handler(wiced_bt_gatt_event_data_t *p_req, uint16_t *p_er
  */
 wiced_bt_gatt_status_t
 app_bt_gatt_attr_read_handler( uint16_t conn_id,
-                            wiced_bt_gatt_opcode_t opcode,
-                            wiced_bt_gatt_read_t *p_read_req,
-                            uint16_t len_req,
-                            uint16_t *p_error_handle)
+                               wiced_bt_gatt_opcode_t opcode,
+                               wiced_bt_gatt_read_t *p_read_req,
+                               uint16_t len_req,
+                               uint16_t *p_error_handle)
 {
     wiced_bt_gatt_status_t gatt_status = WICED_BT_GATT_SUCCESS;
     uint16_t valid_end_handle = HDLC_HIDS_PROTOCOL_MODE_VALUE;
@@ -1194,12 +1284,12 @@ static wiced_bt_gatt_status_t app_bt_prepare_write_handler(uint16_t conn_id,
         write_buff.handle = 0;
     }
 
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "%s() handle : 0x%x (%d)\n", __func__, p_req->handle, p_req->handle);
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "     offset : 0x%x\n", p_req->offset);
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "     p_val  : %p\n",   p_req->p_val);
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "     val_len: 0x%x\n", p_req->val_len);
+    printf("%s() handle : 0x%x (%d)\n", __func__, p_req->handle, p_req->handle);
+    printf("     offset : 0x%x\n", p_req->offset);
+    printf("     p_val  : %p\n",   p_req->p_val);
+    printf("     val_len: 0x%x\n", p_req->val_len);
 
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "val_len = %d \n", p_req->val_len);
+    printf("val_len = %d \n", p_req->val_len);
 
     *p_error_handle = p_req->handle;
 
@@ -1214,24 +1304,24 @@ static wiced_bt_gatt_status_t app_bt_prepare_write_handler(uint16_t conn_id,
             memcpy( (void*)((uint32_t)(&(write_buff.value[0]) + write_buff.written)), p_req->p_val, to_write);
 
             /* send success response */
-            cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "== Sending prepare write success response...\n");
+            printf("== Sending prepare write success response...\n");
             wiced_bt_gatt_server_send_prepare_write_rsp(conn_id, opcode, p_req->handle,
                                                         p_req->offset, to_write,
                                                         &(write_buff.value[write_buff.written]), NULL);
             write_buff.written += to_write;
             write_buff.handle = p_req->handle;
-            cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "    Total val_len: %d\n", write_buff.written);
+            printf("    Total val_len: %d\n", write_buff.written);
             return WICED_BT_GATT_SUCCESS;
         }
         else
         {
-            cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_ERR, "remaining >= to_write error...\n");
+            printf("remaining >= to_write error...\n");
             return WICED_BT_GATT_ERROR;
         }
     }
     else
     {
-        cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_ERR, "write_buff.written != p_req->offset...\n");
+        printf("write_buff.written != p_req->offset...\n");
     }
 
     return WICED_BT_GATT_ERROR;
@@ -1264,26 +1354,26 @@ static wiced_bt_gatt_status_t app_bt_execute_write_handler(wiced_bt_gatt_event_d
 
     if(write_buff.in_use == false)
     {
-        cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_ERR, "write_buff.inuse is false returning error...\n");
+        printf("write_buff.inuse is false returning error...\n");
         return WICED_BT_GATT_ERROR;
     }
 
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_NOTICE, "Execute Write with %d bytes\n", write_buff.written);
+    printf("Execute Write with %d bytes\n", write_buff.written);
 
     p_write_req->handle = write_buff.handle;
     p_write_req->offset = 0;
     p_write_req->p_val = &(write_buff.value[0]);
     p_write_req->val_len = write_buff.written;
 
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "%s() handle : 0x%x (%d)\n", __func__, p_write_req->handle, p_write_req->handle);
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "     offset : 0x%x\n", p_write_req->offset);
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "     p_val  : %p\n",   p_write_req->p_val);
-    cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_INFO, "     val_len: 0x%x\n", p_write_req->val_len);
+    printf("%s() handle : 0x%x (%d)\n", __func__, p_write_req->handle, p_write_req->handle);
+    printf("     offset : 0x%x\n", p_write_req->offset);
+    printf("     p_val  : %p\n",   p_write_req->p_val);
+    printf("     val_len: 0x%x\n", p_write_req->val_len);
 
     status = app_bt_gatt_attr_write_handler(p_req,p_error_handle);
     if (status != WICED_BT_GATT_SUCCESS)
     {
-        cy_log_msg(CYLF_MIDDLEWARE, CY_LOG_ERR, "app_bt_write_handler() failed....\n");
+        printf("app_bt_write_handler() failed....\n");
     }
 
     write_buff.in_use = false;

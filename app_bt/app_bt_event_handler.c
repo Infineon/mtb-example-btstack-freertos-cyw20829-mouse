@@ -52,11 +52,10 @@
 #include "app_handler.h"
 #include "app_bt_bonding.h"
 #include "app_bt_hid.h"
-
 #include "wiced_bt_gatt.h"
 #include "wiced_bt_ble.h"
-
 #include "cyhal_wdt.h"
+#include "cyabs_rtos.h"
 
 /*******************************************************************************
  *                                Macros
@@ -92,9 +91,64 @@ static void app_bt_init(void);
 /* This function initializes GATT DB and registers callback for GATT events */
 static void app_bt_gatt_db_init(void);
 
+
+wiced_bt_gatt_status_t app_bt_ble_send_indication(uint16_t bt_conn_id, uint16_t attr_handle, uint16_t val_len, uint8_t* p_val);
+
 /*******************************************************************************
  *                          Function Definitions
  ******************************************************************************/
+
+/**
+ * Function Name:
+ * app_bt_ble_send_notification
+ * 
+ * Function Description:
+ * @brief This function send the BLE notification
+ * 
+ * @param bt_conn_id: Bluetooth connection ID
+ * @param attr_handle: Attribute Handle
+ * @param val_len: Length of the data
+ * @param p_val: Poniter to the value
+ * 
+ * @return wiced_bt_gatt_status_t: Error code from WICED_BT_GATT
+ */
+wiced_bt_gatt_status_t app_bt_ble_send_notification(uint16_t bt_conn_id, uint16_t attr_handle, uint16_t val_len, uint8_t* p_val)
+{
+    wiced_bt_gatt_status_t status = (wiced_bt_gatt_status_t)WICED_BT_GATT_ERROR;
+
+    status = wiced_bt_gatt_server_send_notification(bt_conn_id, attr_handle, val_len, p_val, NULL);    /* bt_notify_buff is not allocated, no need to keep track of it w/context */
+    if (status != WICED_BT_SUCCESS)
+    {
+        printf("%s() Notification FAILED conn_id:0x%x (%d) handle: %d val_len: %d value:%d\n", __func__, bt_conn_id, bt_conn_id, attr_handle, val_len, *p_val);
+    }
+    return status;
+}
+
+/**
+ * Function Name:
+ * app_bt_ble_send_indication
+ * 
+ * Function Description:
+ * @brief This function send the BLE indication
+ * 
+ * @param bt_conn_id: Bluetooth connection ID
+ * @param attr_handle: Attribute Handle
+ * @param val_len: Length of the data
+ * @param p_val: Poniter to the value
+ * 
+ * @return wiced_bt_gatt_status_t: Error code from WICED_BT_GATT
+ */
+wiced_bt_gatt_status_t app_bt_ble_send_indication(uint16_t bt_conn_id, uint16_t attr_handle, uint16_t val_len, uint8_t* p_val)
+{
+    wiced_bt_gatt_status_t status = (wiced_bt_gatt_status_t)WICED_BT_GATT_ERROR;
+
+    status = wiced_bt_gatt_server_send_indication(bt_conn_id, attr_handle, val_len, p_val, NULL);    /* bt_notify_buff is not allocated, no need to keep track of it w/context */
+    if (status != WICED_BT_SUCCESS)
+    {
+        printf("%s() Indication FAILED conn_id:0x%x (%d) handle: %d val_len: %d value:%d\n", __func__, bt_conn_id, bt_conn_id, attr_handle, val_len, *p_val);
+    }
+    return status;
+}
 
 /**
  * Function Name:
