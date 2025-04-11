@@ -54,7 +54,7 @@
   ******************************************************************************/
   /* Number of advertisement frames */
 #define NUM_ADV_ELEM            (CY_BT_ADV_PACKET_DATA_SIZE)
-
+#define NUM_SCN_RSP_ELEM        (CY_BT_SCAN_RESP_PACKET_DATA_SIZE)
 /*******************************************************************************
  *                              FUNCTION DECLARATIONS
  ******************************************************************************/
@@ -115,4 +115,11 @@ void app_bt_efi_swift_pair_start_adv(uint8_t adv_flag ,bool is_cool_down_adv)
     {
         printf("Starting undirected Bluetooth LE advertisements Failed\r\n");
     }
+
+    /* set the scan rep data */
+    if (WICED_SUCCESS != wiced_bt_ble_set_raw_scan_response_data( NUM_SCN_RSP_ELEM, cy_bt_scan_resp_packet_data))
+    {
+        printf("Setting scan data Failed\r\n");
+    }
+
 }

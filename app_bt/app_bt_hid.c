@@ -8,7 +8,7 @@
  * Related Document: See README.md
  *
  *******************************************************************************
- * Copyright 2022-2024, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2022-2025, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -626,6 +626,12 @@ void app_bt_hid_task(void *pvParameters)
         /* Msg from Battery monitor task */
         if (rpt_msg.msg_type == BATT_MSG_TYPE)
         {
+            if(rpt_msg.data.batt_level  < 10 && app_bt_conn_id)
+            {
+                app_status_led_blinky_on();
+                Cy_SysLib_Delay(3000);
+                app_status_led_blinky_off();
+            }
             app_bt_hid_send_batt_report(rpt_msg.data.batt_level);
         }
 

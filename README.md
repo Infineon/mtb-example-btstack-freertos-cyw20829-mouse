@@ -4,7 +4,7 @@ This reference solution demonstrates the implementation of the AIROC™ CYW20829
 
 [View this README on GitHub.](https://github.com/Infineon/mtb-example-btstack-freertos-cyw20829-mouse)
 
-[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiNC4xLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
+[Provide feedback on this code example.](https://cypress.co1.qualtrics.com/jfe/form/SV_1NTns53sK2yiljn?Q_EED=eyJVbmlxdWUgRG9jIElkIjoiQ0UyMzY2NzAiLCJTcGVjIE51bWJlciI6IjAwMi0zNjY3MCIsIkRvYyBUaXRsZSI6IkFJUk9DJnRyYWRlOyBDWVcyMDgyOSBISUQgbW91c2UgcmVmZXJlbmNlIHNvbHV0aW9uIiwicmlkIjoiZ293ZGFjbSIsIkRvYyB2ZXJzaW9uIjoiNC4yLjAiLCJEb2MgTGFuZ3VhZ2UiOiJFbmdsaXNoIiwiRG9jIERpdmlzaW9uIjoiTUNEIiwiRG9jIEJVIjoiSUNXIiwiRG9jIEZhbWlseSI6IkJUQUJMRSJ9)
 
 ## Requirements
 
@@ -314,7 +314,8 @@ Document title: *CE236670* - AIROC&trade; CYW20829 HID mouse reference solution
  3.1.0   | Update list of supported compilers.
  4.0.0   | BSP and BTStack-integration major update for BT Firmware as a separate asset
  4.1.0   | EFI, Swift Pairing and OTA support upgrade
-
+ 4.2.0   | Stop adv if no connection is established post cooldown phase. 
+ 
 <br />
 
 ---------------------------------------------------------
